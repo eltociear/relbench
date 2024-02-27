@@ -52,6 +52,7 @@ def create_model(data, entity_table, to_device=True):
                 hetero_aggr=cfg.model.hetero_aggr,
                 num_layers=cfg.model.num_layers,
                 use_self_join=cfg.model.use_self_join,
+                use_self_join_with_retrieval=cfg.model.use_self_join_with_retrieval,
                 node_type_considered=cfg.selfjoin.node_type_considered,
                 num_filtered=cfg.selfjoin.num_filtered,
                 sim_score_type=cfg.selfjoin.sim_score_type,
