@@ -28,11 +28,11 @@ def main() -> None:
         'model.channels': [128, 256],
         # 'model.conv': ['sage', 'gat'],
         #'model.num_layers': [2],
-        #'model.use_self_join_with_retrieval': [True, False],
+        'model.use_self_join_with_retrieval': [True],
         # 'model.aggr': ['sum', 'mean', 'max'],
         #'model.dropout': [0.0],
         'model.feature_dropout': [0.0, 0.2, 0.4],
-        #'selfjoin.memory_bank_size': [2048],
+        #'selfjoin.memory_bank_size': [2048, 4096],
         #'selfjoin.num_filtered': [32, 128, 512],
         # 'model.hetero_aggr': ['sum', 'mean', 'max'],
         'optim.base_lr': [0.01, 0.001],
@@ -40,7 +40,7 @@ def main() -> None:
         # 'loader.temporal_strategy': ['uniform', 'last']
         # 'selfjoin.node_type_considered': ['drivers', None],
         # 'selfjoin.num_filtered': [10, 20, 50],
-        #'selfjoin.sim_score_type': [None, 'cos', 'L2', 'attention'],
+        #'selfjoin.sim_score_type': ['L2', 'attention'],
         # 'selfjoin.aggr_scheme': ['gat', 'mpnn'],
         # 'selfjoin.normalize_score': [True, False],
     }
@@ -105,6 +105,11 @@ def main() -> None:
         gpu = resource_pool.get()  # wait for a GPU to become available
         worker = Process(target=create_worker(new_config_file, gpu, exp_id))
         worker.start()
+
+        # job should be done
+
+        # 1. check if all seeds ran
+        # 2. modify new_config_file and repeats accoirdingly, then run again
 
         # Wait for a while to avoid launching jobs too quickly
         time.sleep(args.sleep_time)

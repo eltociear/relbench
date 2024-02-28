@@ -6,8 +6,17 @@ model:
   aggr: "sum"
   conv: "sage"
   num_layers: 2
-  use_self_join: false
+  use_self_join: true
+  use_self_join_with_retrieval: false
   feature_dropout: 0.0
+selfjoin:
+  node_type_considered: 'drivers'
+  num_filtered: 20
+  memory_bank_size: 4096
+  sim_score_type: 'attention'  # 'cos', 'L2', 'attention'
+  aggr_scheme: 'mpnn'  # 'gat', 'mpnn'
+  normalize_score: true
+  aggr: 'sum'
 dataset:
   name: "rel-f1"
   cache_dir: "/dfs/scratch0/joshrob/projects/relbench/cache"
