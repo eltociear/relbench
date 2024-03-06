@@ -109,6 +109,9 @@ def set_cfg(cfg):
     # The model class
     cfg.torch_frame_model.torch_frame_model_cls = "ResNet"
 
+    # test embedder
+    cfg.torch_frame_model.text_embedder = "glove"
+
     # ----------------------------------------------------------------------- #
     # Model options
     # ----------------------------------------------------------------------- #

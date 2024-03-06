@@ -7,7 +7,7 @@ model:
   conv: "sage"
   num_layers: 2
   use_self_join: false
-  use_self_join_with_retrieval: true
+  use_self_join_with_retrieval: false
   feature_dropout: 0.0
 selfjoin:
   node_type_considered: 'drivers'
