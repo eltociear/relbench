@@ -10,7 +10,7 @@ model:
   use_self_join_with_retrieval: true
   feature_dropout: 0.0
 selfjoin:
-  node_type_considered: 'drivers'
+  node_type_considered: 'customers'
   num_filtered: 20
   sim_score_type: 'attention'  # 'cos', 'L2', 'attention'
   aggr_scheme: 'mpnn'  # 'gat', 'mpnn'
