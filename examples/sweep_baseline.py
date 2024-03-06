@@ -20,22 +20,27 @@ def main() -> None:
 
     """
     grid1 = {"DATASET": ["rel-f1"],
-             "TASK": ["rel-f1-dnf", "rel-f1-qualifying", "rel-f1-position"],
+             "TASK": ["rel-f1-dnf", "rel-f1-qualifying", "rel-f1-position"], 
+
              "MODEL": ["lgbm", "baseline"]}
 
     grid2 = {"DATASET": ["rel-stackex"],
              "TASK": ["rel-stackex-engage", "rel-stackex-votes", "rel-stackex-badges"],
              "MODEL": ["lgbm"]}
     """
-    grid3 = {"DATASET": ["rel-trial"], "TASK": ["rel-trial-site"], "MODEL": ["lgbm"]}
+    grid3 = {"DATASET": ["rel-trial"],
+             "TASK": ["rel-trial-site"],
+             "MODEL": ["lgbm"]}
 
     grids = [grid3]
 
     combinations = []
     for grid in grids:
+
         os.makedirs(
             os.path.join("results", "baselines", grid["DATASET"][0]), exist_ok=True
         )
+
 
         assert list(grid.keys()) == ["DATASET", "TASK", "MODEL"]
 
@@ -50,10 +55,10 @@ def main() -> None:
             return "python examples/lightgbm_baseline.py"
         elif MODEL == "baseline":
             return "python examples/baseline.py"
-
+        
     def get_log_file(DATASET, TASK, MODEL):
         return f"results/baselines/{DATASET}/{TASK}_{MODEL}.log"
-
+    
     # Maintain resource pool of available GPUs.
     resource_pool = Queue()
     for gpu in map(int, gpu_ids):  # provide GPU ids as comma-separated list
@@ -76,6 +81,7 @@ def main() -> None:
 
         return worker
 
+
     # Run each hyperparameter configuration.
     for combo in combinations:
         gpu = resource_pool.get()  # wait for a GPU to become available
@@ -84,6 +90,7 @@ def main() -> None:
 
         # Wait for a while to avoid launching jobs too quickly
         time.sleep(args.sleep_time)
+
 
 
 if __name__ == "__main__":
