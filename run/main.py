@@ -6,15 +6,15 @@ from torch_geometric import seed_everything
 
 sys.path.append("./")
 
+from relbench.data.task_base import TaskType
 from relgym.config import cfg, dump_cfg, load_cfg, set_out_dir, set_run_dir
-from relgym.loader import create_loader
+from relgym.loader import create_loader, create_dataset_and_task, transform_dataset_to_graph
 from relgym.logger import setup_printing
 from relgym.loss import create_loss_fn
 from relgym.models.model_builder import create_model
 from relgym.optimizer import create_optimizer, create_scheduler
 from relgym.train import train
 
-# from relgym.utils.agg_runs import agg_runs
 from relgym.utils.comp_budget import params_count
 from relgym.utils.device import auto_select_device
 
@@ -62,24 +62,29 @@ if __name__ == "__main__":
     # Set Pytorch environment
     # torch.set_num_threads(cfg.num_threads)
     dump_cfg(cfg)
+    if args.auto_select_device:
+        auto_select_device()
+    else:
+        cfg.device = "cuda"
+    # Load dataset
+    dataset, task = create_dataset_and_task()
+    data, col_stats_dict = transform_dataset_to_graph(dataset)
     # Repeat for different random seeds
     for i in range(args.repeat):
         set_run_dir(cfg.out_dir)
         setup_printing()
         # Set configurations for each run
         seed_everything(cfg.seed)
-        if args.auto_select_device:
-            auto_select_device()
-        else:
-            cfg.device = "cuda"
         # Set machine learning pipeline
-        loader_dict, entity_table, task, data, col_stats_dict = create_loader()
+        loader_dict = create_loader(data, task)
         model = create_model(
             data=data,
             col_stats_dict=col_stats_dict,
-            entity_table=entity_table,
-            task_type=task.task_type,
+            task=task,
             to_device=cfg.device,
+            shallow_list=[
+                task.dst_entity_table
+            ] if cfg.model.use_shallow and task.task_type == TaskType.LINK_PREDICTION else [],
         )
         optimizer = create_optimizer(model.parameters())
         scheduler = create_scheduler(optimizer)
@@ -96,15 +101,9 @@ if __name__ == "__main__":
             optimizer,
             scheduler,
             task,
-            entity_table,
             loss_fn,
             loss_utils,
         )
         logging.info(f"Complete trial {i}")
         cfg.seed = cfg.seed + 1
 
-    # Aggregate results from different seeds
-    # agg_runs(cfg.out_dir, cfg.metric_best)
-    # When being launched in batch mode, mark a yaml as done
-    # if args.mark_done:
-    #     os.rename(args.cfg_file, f'{args.cfg_file}_done')

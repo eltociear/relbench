@@ -22,10 +22,15 @@ def create_loss_fn(task):
         )
         loss_utils["clamp_min"] = clamp_min
         loss_utils["clamp_max"] = clamp_max
+    elif task.task_type == TaskType.LINK_PREDICTION:
+        out_channels = cfg.model.channels
+        loss_fn = None
+        tune_metric = "link_prediction_map"
+        higher_is_better = True
     else:
         raise NotImplementedError(task.task_type)
 
-    cfg.out_channels = out_channels
+    cfg.model.out_channels = out_channels
     cfg.tune_metric = tune_metric
     cfg.higher_is_better = higher_is_better
 

@@ -9,7 +9,7 @@ model:
   use_self_join: true
   use_self_join_with_retrieval: false
   perturb_edges: null
-  feature_dropout: null
+  feature_dropout: 0.0
 selfjoin:
   node_type_considered: 'customer'
   num_filtered: 20

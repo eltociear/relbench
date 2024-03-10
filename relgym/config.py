@@ -59,6 +59,9 @@ def set_cfg(cfg):
     # Temporal strategy in 'uniform', 'last'
     cfg.loader.temporal_strategy = "uniform"
 
+    # Share same time for mini batch to enable shared negative samples in link prediction
+    cfg.loader.share_same_time = False
+
     # ----------------------------------------------------------------------- #
     # Dataset options
     # ----------------------------------------------------------------------- #
@@ -88,7 +91,10 @@ def set_cfg(cfg):
     cfg.train.eval_period = 1
 
     # The period for checkpoint saving
-    cfg.train.ckpt_period = 30
+    cfg.train.ckpt_period = 40
+
+    # The maximum step per epoch in link prediction
+    cfg.train.max_steps_per_epoch = 2000
 
     # ----------------------------------------------------------------------- #
     # Validation options
@@ -103,8 +109,14 @@ def set_cfg(cfg):
     # The hidden channels for the model
     cfg.torch_frame_model.channels = 128
 
-    # The aggregation method
+    # The number of torch frame model layers
     cfg.torch_frame_model.num_layers = 2
+
+    # The model class
+    cfg.torch_frame_model.torch_frame_model_cls = "ResNet"
+
+    # test embedder
+    cfg.torch_frame_model.text_embedder = "glove"
 
     # ----------------------------------------------------------------------- #
     # Model options
@@ -113,6 +125,9 @@ def set_cfg(cfg):
 
     # The hidden channels for the model
     cfg.model.channels = 128
+
+    # The output channels for the model
+    cfg.model.out_channels = 1
 
     # The aggregation method of GNN message passing
     cfg.model.aggr = "sum"
@@ -126,43 +141,20 @@ def set_cfg(cfg):
     # The number of conv layers
     cfg.model.num_layers = 2
 
-    # Use self join
-    cfg.model.use_self_join = False
-
-    # Use self join with retrieval memory bank
-    cfg.model.use_self_join_with_retrieval = False
-
-    # Perturb input edges, in [None, 'drop_all', 'random_perturb', 'random_perturb_bidirectional']
+    # Perturb input edges, in [None, 'drop_all', 'rand_perm']
     cfg.model.perturb_edges = None
 
     # Feature dropout
-    cfg.model.feature_dropout = None
+    cfg.model.feature_dropout = 0.0
 
-    # ----------------------------------------------------------------------- #
-    # Self-Join options
-    # ----------------------------------------------------------------------- #
-    cfg.selfjoin = CN()
+    # Mask input feature
+    cfg.model.mask_features = False
 
-    # The node type(s) to perform the self join operation
-    cfg.selfjoin.node_type_considered = None
+    # Norm type for the prediction head
+    cfg.model.norm = "batch_norm"
 
-    # The parameter K in topK selection
-    cfg.selfjoin.num_filtered = 20
-
-    # The memory bank size
-    cfg.selfjoin.memory_bank_size = 4096
-
-    # The similarity score computation method, in ['cos', 'L2', 'attention']
-    cfg.selfjoin.sim_score_type = "cos"
-
-    # The aggregation scheme of self join, in ['gat', 'mpnn']
-    cfg.selfjoin.aggr_scheme = "mpnn"
-
-    # Whether to normalize the score using softmax
-    cfg.selfjoin.normalize_score = True
-
-    # Aggregation in message passing
-    cfg.selfjoin.aggr = "sum"
+    # Use shallow embedding for destination nodes in link prediction
+    cfg.model.use_shallow = False
 
     # ----------------------------------------------------------------------- #
     # Optimizer options

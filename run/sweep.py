@@ -4,7 +4,7 @@ import os
 import subprocess
 import time
 from multiprocessing import Process, Queue
-from typing import Any, Callable, Dict, Generator, Iterable, List, Tuple
+from typing import Callable
 
 import yaml
 
@@ -12,7 +12,10 @@ import yaml
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config-file", type=str, required=False, default="run/configs/base.yaml"
+        "--config-file", type=str, required=False, default="run/configs/f1-qualifying.yaml"
+    )
+    parser.add_argument(
+        "--grid-file", type=str, required=False, default="run/experiments/edge.yaml"
     )
     parser.add_argument("--gpu-ids", type=str, required=False, default="0,1,2,3")
     parser.add_argument("--repeats", type=int, required=False, default=1)
@@ -20,27 +23,18 @@ def main() -> None:
     args = parser.parse_args()
 
     # Define the hyperparameters and their values to sweep over
-    hyperparameters = {
-        "model.channels": [128, 256],
-        # "model.channels": [64, 128],
-        # 'model.conv': ['sage', 'gat'],
-        # 'model.num_layers': [2, 3],
-        # 'model.perturb_edges': [None, 'drop_all', 'rand_perm'],
-        "model.use_self_join": [True, False],
-        # "model.use_self_join_with_retrieval: [True, False],
-        "model.feature_dropout": [None, 0.2],
-        # 'model.aggr': ['sum', 'mean', 'max'],
-        # 'model.hetero_aggr': ['sum', 'mean', 'max'],
-        "optim.base_lr": [0.01, 0.001],
-        # 'loader.num_neighbors': [16, 32, 64, 128, 256],
-        # 'loader.temporal_strategy': ['uniform', 'last']
-        # "selfjoin.memory_bank_size": [2048],
-        # 'selfjoin.node_type_considered': ['drivers', None],
-        # 'selfjoin.num_filtered': [10, 20, 50],
-        "selfjoin.sim_score_type": ["attention"],
-        # 'selfjoin.aggr_scheme': ['gat', 'mpnn'],
-        # 'selfjoin.normalize_score': [True, False],
-    }
+    with open(args.grid_file, "r") as grid:
+        grid_dict = yaml.safe_load(grid)
+    hyperparameters = {}
+    for key in grid_dict:
+        if type(grid_dict[key]) is dict:
+            for key2 in grid_dict[key]:
+                assert type(grid_dict[key][key2]) is list
+                hyperparameters['.'.join([key, key2])] = grid_dict[key][key2]
+        elif type(grid_dict[key]) is list:
+            hyperparameters[key] = grid_dict[key]
+        else:
+            raise RuntimeError()
 
     repeats = args.repeats  # number of seeds to run
     gpu_ids = args.gpu_ids.split(",")  # Define the GPU IDs available

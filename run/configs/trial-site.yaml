@@ -1,4 +1,4 @@
-ttorch_frame_model:
+torch_frame_model:
   channels: 128
   num_layers: 2
   torch_frame_model_cls: "ResNet"
@@ -12,10 +12,10 @@ model:
   mask_features: false
   feature_dropout: 0.0
 dataset:
-  name: "rel-amazon"
+  name: "rel-trial"
   cache_dir: "/dfs/scratch0/jiaqihan/projects/relbench/cache"
   root_dir: "/dfs/scratch0/jiaqihan/projects/relbench/data"
-  task: "rel-amazon-product-churn"
+  task: "rel-trial-site"
 loader:
   num_neighbors: 128
   num_workers: 1
