@@ -8,9 +8,8 @@ model:
   aggr: "sum"
   conv: "sage"
   num_layers: 2
-  use_self_join: true
-  use_self_join_with_retrieval: false
   perturb_edges: null
+  mask_features: false
   feature_dropout: 0.0
 dataset:
   name: "rel-amazon"

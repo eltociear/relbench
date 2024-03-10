@@ -1,4 +1,4 @@
-ttorch_frame_model:
+torch_frame_model:
   channels: 128
   num_layers: 2
   torch_frame_model_cls: "ResNet"

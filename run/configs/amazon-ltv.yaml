@@ -1,34 +1,26 @@
 torch_frame_model:
   channels: 128
   num_layers: 2
+  torch_frame_model_cls: "ResNet"
+  text_embedder: "glove"
 model:
   channels: 128
   aggr: "sum"
   conv: "sage"
   num_layers: 2
-  use_self_join: true
-  use_self_join_with_retrieval: false
   perturb_edges: null
+  mask_features: false
   feature_dropout: 0.0
-selfjoin:
-  node_type_considered: 'customer'
-  num_filtered: 20
-  sim_score_type: 'L2'  # 'cos', 'L2', 'attention'
-  aggr_scheme: 'mpnn'  # 'gat', 'mpnn'
-  normalize_score: true
-  aggr: 'sum'
 dataset:
   name: "rel-amazon"
   cache_dir: "/dfs/scratch0/jiaqihan/projects/relbench/cache"
   root_dir: "/dfs/scratch0/jiaqihan/projects/relbench/data"
   task: "rel-amazon-ltv"
-  # All tasks:
-  # rel-stackex: rel-stackex-engage, rel-stackex-votes, rel-stackex-badges
-  # rel-amazon: rel-amazon-churn, rel-amazon-ltv, rel-amazon-product-churn, rel-amazon-product-ltv
 loader:
   num_neighbors: 128
   num_workers: 1
   batch_size: 512
+  temporal_strategy: 'uniform'
 optim:
   max_epoch: 30
   early_stop: 10
