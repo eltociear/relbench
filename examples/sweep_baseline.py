@@ -24,13 +24,13 @@ def main() -> None:
              "MODEL": ["link_baseline_random", "link_baseline_most_frequent"]}
 
     grid2 = {"DATASET": ["rel-amazon"],
-                "TASK": ["rel-amazon-rec-purchase",  "rel-amazon-rec-5-star", "rel-amazon-rec-detailed-review"],
+                "TASK": ["rel-amazon-rec-purchase"],
                 "MODEL": ["link_baseline_random", "link_baseline_most_frequent"]}
 
     """
-    grid2 = {"DATASET": ["rel-hm"],
-                "TASK": ["rel-hm-rec"],
-                "MODEL": ["link_baseline_most_frequent"]}
+    grid2 = {"DATASET": ["rel-math-stackex"],
+                "TASK": ["rel-stackex-badges", "rel-stackex-votes"],
+                "MODEL": ["lgbm", "baseline"]}
 
 
     grids = [grid2]

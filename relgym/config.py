@@ -60,7 +60,7 @@ def set_cfg(cfg):
     cfg.loader.temporal_strategy = "uniform"
 
     # Share same time for mini batch to enable shared negative samples in link prediction
-    cfg.loader.share_same_time = False
+    cfg.loader.share_same_time = True
 
     # ----------------------------------------------------------------------- #
     # Dataset options
@@ -154,7 +154,7 @@ def set_cfg(cfg):
     cfg.model.norm = "batch_norm"
 
     # Use shallow embedding for destination nodes in link prediction
-    cfg.model.use_shallow = False
+    cfg.model.use_shallow = True
 
     # ----------------------------------------------------------------------- #
     # Optimizer options

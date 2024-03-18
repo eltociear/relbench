@@ -253,7 +253,7 @@ class ProductRecommendationTask(RelBenchLinkTask):
     time_col = "timestamp"
     timedelta = pd.Timedelta(days=365 * 2)
     metrics = [link_prediction_precision, link_prediction_recall, link_prediction_map]
-    eval_k = 10
+    eval_k = 50
 
     def make_table(self, db: Database, timestamps: "pd.Series[pd.Timestamp]") -> Table:
         customer = db.table_dict["customer"].df
