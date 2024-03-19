@@ -2,7 +2,10 @@ import argparse
 import copy
 import math
 import os
-from typing import Dict
+from typing import Dict, Tuple, List
+
+import sys
+sys.path.append('./')
 
 import numpy as np
 import torch
@@ -50,7 +53,7 @@ seed_everything(42)
 root_dir = "./data"
 
 # TODO: remove process=True once correct data/task is uploaded.
-dataset: RelBenchDataset = get_dataset(name=args.dataset, process=True)
+dataset: RelBenchDataset = get_dataset(name=args.dataset, process=True, cache_dir='./cache')
 task: LinkTask = dataset.get_task(args.task, process=True)
 tune_metric = "link_prediction_map"
 assert task.task_type == TaskType.LINK_PREDICTION
@@ -85,7 +88,7 @@ train_loader = LinkNeighborLoader(
     num_workers=args.num_workers,
 )
 
-eval_loaders_dict: Dict[str, tuple[NeighborLoader, NeighborLoader]] = {}
+eval_loaders_dict: Dict[str, Tuple[NeighborLoader, NeighborLoader]] = {}
 for split in ["val", "test"]:
     seed_time = task.val_seed_time if split == "val" else task.test_seed_time
     target_table = task.val_table if split == "val" else task.test_table
@@ -177,7 +180,7 @@ def train() -> Dict[str, float]:
 def test(src_loader: NeighborLoader, dst_loader: NeighborLoader) -> np.ndarray:
     model.eval()
 
-    dst_embs: list[Tensor] = []
+    dst_embs: List[Tensor] = []
     for batch in tqdm(dst_loader):
         batch = batch.to(device)
         emb = model(batch, task.dst_entity_table).detach()
@@ -185,7 +188,7 @@ def test(src_loader: NeighborLoader, dst_loader: NeighborLoader) -> np.ndarray:
     dst_emb = torch.cat(dst_embs, dim=0)
     del dst_embs
 
-    pred_index_mat_list: list[Tensor] = []
+    pred_index_mat_list: List[Tensor] = []
     for batch in tqdm(src_loader):
         batch = batch.to(device)
         emb = model(batch, task.src_entity_table)
