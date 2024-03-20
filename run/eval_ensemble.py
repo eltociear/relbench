@@ -156,4 +156,3 @@ if __name__ == "__main__":
             raise RuntimeError(f"split should be val or test, got {split}")
         print(split)
         print(metrics)
-
