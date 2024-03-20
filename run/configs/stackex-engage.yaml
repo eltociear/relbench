@@ -14,8 +14,8 @@ model:
   use_time_emb: true
 dataset:
   name: "rel-stackex"
-  cache_dir: "/dfs/scratch0/jiaqihan/projects/relbench/cache"
-  root_dir: "/dfs/scratch0/jiaqihan/projects/relbench/data"
+  cache_dir: "/dfs/scratch0/joshrob/projects/relbench/cache"
+  root_dir: "/dfs/scratch0/joshrob/projects/relbench/data"
   task: "rel-stackex-engage"
 loader:
   num_neighbors: 128

@@ -94,6 +94,7 @@ class HeteroGNN(torch.nn.Module):
         }
 
         for i, (conv, norm_dict) in enumerate(zip(self.convs, self.norms)):
+            # TODO: Re-introduce this.
             # Trim graph and features to only hold required data per layer:
             # if num_sampled_nodes_dict is not None:
             #     assert num_sampled_edges_dict is not None

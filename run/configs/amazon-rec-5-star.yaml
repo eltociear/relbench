@@ -16,8 +16,8 @@ model:
   use_time_emb: true
 dataset:
   name: "rel-amazon"
-  cache_dir: "/dfs/scratch0/jiaqihan/projects/relbench/cache"
-  root_dir: "/dfs/scratch0/jiaqihan/projects/relbench/data"
+  cache_dir: "/dfs/scratch0/joshrob/projects/relbench/cache"
+  root_dir: "/dfs/scratch0/joshrob/projects/relbench/data"
   task: "rel-amazon-rec-5-star"
 loader:
   num_neighbors: 160

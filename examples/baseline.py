@@ -12,6 +12,7 @@ from relbench.datasets import get_dataset
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", type=str, default="rel-stackex")
 parser.add_argument("--task", type=str, default="rel-stackex-engage")
+parser.add_argument("--repeats", type=int, default=1)
 # Classification task: rel-stackex-engage
 # Regression task: rel-stackex-votes
 args = parser.parse_args()
@@ -68,31 +69,32 @@ trainval_table = Table(
     time_col=train_table.time_col,
 )
 
-if task.task_type == TaskType.REGRESSION:
-    eval_name_list = [
-        "global_zero",
-        "global_mean",
-        "global_median",
-        "entity_mean",
-        "entity_median",
-    ]
+for _ in range(args.repeats):
+    if task.task_type == TaskType.REGRESSION:
+        eval_name_list = [
+            "global_zero",
+            "global_mean",
+            "global_median",
+            "entity_mean",
+            "entity_median",
+        ]
 
-    for name in eval_name_list:
-        train_metrics = evaluate(train_table, train_table, name=name)
-        val_metrics = evaluate(train_table, val_table, name=name)
-        test_metrics = evaluate(trainval_table, test_table, name=name)
-        print(f"{name}:")
-        print(f"Train: {train_metrics}")
-        print(f"Val: {val_metrics}")
-        print(f"Test: {test_metrics}")
+        for name in eval_name_list:
+            train_metrics = evaluate(train_table, train_table, name=name)
+            val_metrics = evaluate(train_table, val_table, name=name)
+            test_metrics = evaluate(trainval_table, test_table, name=name)
+            print(f"{name}:")
+            print(f"Train: {train_metrics}")
+            print(f"Val: {val_metrics}")
+            print(f"Test: {test_metrics}")
 
-elif task.task_type == TaskType.BINARY_CLASSIFICATION:
-    eval_name_list = ["random", "majority"]
-    for name in eval_name_list:
-        train_metrics = evaluate(train_table, train_table, name=name)
-        val_metrics = evaluate(train_table, val_table, name=name)
-        test_metrics = evaluate(trainval_table, test_table, name=name)
-        print(f"{name}:")
-        print(f"Train: {train_metrics}")
-        print(f"Val: {val_metrics}")
-        print(f"Test: {test_metrics}")
+    elif task.task_type == TaskType.BINARY_CLASSIFICATION:
+        eval_name_list = ["random", "majority"]
+        for name in eval_name_list:
+            train_metrics = evaluate(train_table, train_table, name=name)
+            val_metrics = evaluate(train_table, val_table, name=name)
+            test_metrics = evaluate(trainval_table, test_table, name=name)
+            print(f"{name}:")
+            print(f"Train: {train_metrics}")
+            print(f"Val: {val_metrics}")
+            print(f"Test: {test_metrics}")

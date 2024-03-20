@@ -19,6 +19,7 @@ from relbench.datasets import get_dataset
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", type=str, default="rel-stackex")
 parser.add_argument("--task", type=str, default="rel-stackex-engage")
+parser.add_argument("--repeats", type=int, default=1)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -78,15 +79,16 @@ if task.task_type == TaskType.BINARY_CLASSIFICATION:
 else:
     tune_metric = Metric.MAE
 
-model = LightGBM(task_type=train_dataset.task_type, metric=tune_metric)
+for _ in range(args.repeats):
+    model = LightGBM(task_type=train_dataset.task_type, metric=tune_metric)
 
-model.tune(tf_train=tf_train, tf_val=tf_val, num_trials=10)
+    model.tune(tf_train=tf_train, tf_val=tf_val, num_trials=10)
 
-pred = model.predict(tf_test=tf_train).numpy()
-print(f"Train: {task.evaluate(pred, train_table)}")
+    pred = model.predict(tf_test=tf_train).numpy()
+    print(f"Train: {task.evaluate(pred, train_table)}")
 
-pred = model.predict(tf_test=tf_val).numpy()
-print(f"Val: {task.evaluate(pred, val_table)}")
+    pred = model.predict(tf_test=tf_val).numpy()
+    print(f"Val: {task.evaluate(pred, val_table)}")
 
-pred = model.predict(tf_test=tf_test).numpy()
-print(f"Test: {task.evaluate(pred)}")
+    pred = model.predict(tf_test=tf_test).numpy()
+    print(f"Test: {task.evaluate(pred)}")
