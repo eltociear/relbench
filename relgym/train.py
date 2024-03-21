@@ -23,10 +23,16 @@ def train_epoch_node(
     for batch in tqdm(loader_dict["train"]):
         batch = batch.to(cfg.device)
 
+        if cfg.selfjoin.use_self_join:  # Use the re-sampling method for retrieval bank
+            bank_batch = next(loader_dict["bank"]).to(cfg.device)
+        else:
+            bank_batch = None
+
         optimizer.zero_grad()
         pred = model(
             batch,
             entity_table,
+            bank_batch=bank_batch,
         )
 
         pred = pred.view(-1) if pred.size(1) == 1 else pred
@@ -54,9 +60,15 @@ def eval_epoch_node(
     for batch in tqdm(loader_dict[split]):
         batch = batch.to(cfg.device)
 
+        if cfg.selfjoin.use_self_join:  # Use the re-sampling method for retrieval bank
+            bank_batch = next(loader_dict["bank"]).to(cfg.device)
+        else:
+            bank_batch = None
+
         pred = model(
             batch,
             entity_table,
+            bank_batch=bank_batch,
         )
 
         if task.task_type == TaskType.BINARY_CLASSIFICATION:

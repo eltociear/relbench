@@ -45,6 +45,14 @@ def create_model(data, col_stats_dict, task, to_device=True, shallow_list: List[
                 ],
                 channels=cfg.model.channels,
             )
+            selfjoin_kwargs = {
+                "use_self_join": cfg.selfjoin.use_self_join,
+                "node_type_considered": cfg.selfjoin.node_type_considered,
+                "num_filtered": cfg.selfjoin.num_filtered,
+                "normalize_score": cfg.selfjoin.normalize_score,
+                "selfjoin_aggr": cfg.selfjoin.aggr,
+                "retrieve_label": cfg.selfjoin.retrieve_label,
+            }
             self.gnn = HeteroGNN(
                 conv=cfg.model.conv,
                 node_types=data.node_types,
@@ -54,6 +62,7 @@ def create_model(data, col_stats_dict, task, to_device=True, shallow_list: List[
                 hetero_aggr=cfg.model.hetero_aggr,
                 num_layers=cfg.model.num_layers,
                 feature_dropout=cfg.model.feature_dropout,
+                **selfjoin_kwargs,
             )
             self.head = MLP(
                 cfg.model.channels,
@@ -72,6 +81,7 @@ def create_model(data, col_stats_dict, task, to_device=True, shallow_list: List[
                 self,
                 batch: HeteroData,
                 entity_table,
+                **kwargs,
         ) -> Tensor:
             x_dict = self.encoder(batch.tf_dict)
 
@@ -97,12 +107,34 @@ def create_model(data, col_stats_dict, task, to_device=True, shallow_list: List[
                 for node_type, feature in x_dict.items():
                     x_dict[node_type] = torch.zeros_like(feature)
 
+            # Get the embeddings of the bank
+            bank_batch = kwargs.get("bank_batch", None)
+            if bank_batch is not None:
+                bank_x_dict = self.encoder(bank_batch.tf_dict)
+                bank_rel_time_dict = self.temporal_encoder(bank_batch[entity_table].seed_time,
+                                                           bank_batch.time_dict, bank_batch.batch_dict)
+                for node_type, rel_time in bank_rel_time_dict.items():
+                    bank_x_dict[node_type] = bank_x_dict[node_type] + rel_time
+                bank_y = bank_batch[entity_table].y
+                bank_seed_time = bank_batch[entity_table].seed_time
+            else:
+                bank_x_dict = None
+                bank_y = None
+                bank_seed_time = None
+
             if cfg.model.perturb_edges != "drop_all":
+                kwargs = {
+                    'bank_x_dict': bank_x_dict,
+                    'bank_y': bank_y,
+                    'seed_time': batch[entity_table].seed_time,
+                    'bank_seed_time': bank_seed_time,
+                }
                 x_dict = self.gnn(
                     x_dict,
                     batch.edge_index_dict,
                     batch.num_sampled_nodes_dict,
                     batch.num_sampled_edges_dict,
+                    **kwargs,
                 )
 
             return self.head(x_dict[entity_table][: batch[entity_table].seed_time.size(0)])

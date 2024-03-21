@@ -160,6 +160,29 @@ def set_cfg(cfg):
     cfg.model.use_time_emb = True
 
     # ----------------------------------------------------------------------- #
+    # Self-join options
+    # ----------------------------------------------------------------------- #
+    cfg.selfjoin = CN()
+
+    # Use self join or not
+    cfg.selfjoin.use_self_join = False
+
+    # The tables considered to apply self join operation
+    cfg.selfjoin.node_type_considered = None
+
+    # The number of preserved samples in topK
+    cfg.selfjoin.num_filtered = 20
+
+    # Normalize the score
+    cfg.selfjoin.normalize_score = True
+
+    # Self join aggr
+    cfg.selfjoin.aggr = "sum"
+
+    # Retrieve label
+    cfg.selfjoin.retrieve_label = True
+
+    # ----------------------------------------------------------------------- #
     # Optimizer options
     # ----------------------------------------------------------------------- #
     cfg.optim = CN()

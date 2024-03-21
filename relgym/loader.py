@@ -1,6 +1,7 @@
 import copy
 import os
 import torch
+from itertools import cycle
 from typing import Dict
 
 from torch_frame.config.text_embedder import TextEmbedderConfig
@@ -84,6 +85,26 @@ def create_loader(data, task):
                 num_workers=cfg.loader.num_workers,
                 persistent_workers=cfg.loader.num_workers > 0,
             )
+
+            if split == "train" and cfg.selfjoin.use_self_join:
+                bank_loader = NeighborLoader(
+                    data,
+                    num_neighbors=[
+                        cfg.loader.num_neighbors for _ in range(cfg.model.num_layers)
+                    ],
+                    time_attr="time",
+                    temporal_strategy=cfg.loader.temporal_strategy,
+                    input_nodes=table_input.nodes,
+                    input_time=table_input.time,
+                    transform=table_input.transform,
+                    # batch_size=cfg.loader.batch_size,
+                    batch_size=128,
+                    shuffle=split == "train",
+                    num_workers=cfg.loader.num_workers,
+                    persistent_workers=cfg.loader.num_workers > 0,
+                    drop_last=True,
+                )
+                loader_dict["bank"] = cycle(bank_loader)  # make it loop infinitely
 
     elif task.task_type == TaskType.LINK_PREDICTION:  # for link prediction task
 
