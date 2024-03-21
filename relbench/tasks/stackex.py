@@ -314,7 +314,7 @@ class RelatedPostTask(RelBenchLinkTask):
                 LEFT JOIN
                     postLinks pl
                 ON
-                    pl.CreationDate <= t.timestamp AND
+                    pl.CreationDate > t.timestamp AND
                     pl.CreationDate <= t.timestamp + INTERVAL '{self.timedelta} days'
                 LEFT JOIN
                     posts p1
