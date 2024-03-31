@@ -24,6 +24,7 @@ class BERTTextEmbedding:
     def __call__(self, sentences: List[str]) -> Tensor:
         return torch.from_numpy(self.model.encode(sentences))
 
+
 class ZeroTextEmbedding:
     def __init__(self, device: Optional[torch.device] = None):
         self.model = None

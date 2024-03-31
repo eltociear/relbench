@@ -78,7 +78,7 @@ if task.task_type == TaskType.BINARY_CLASSIFICATION:
     tune_metric = Metric.ROCAUC
 else:
     tune_metric = Metric.MAE
-
+breakpoint()
 for _ in range(args.repeats):
     model = LightGBM(task_type=train_dataset.task_type, metric=tune_metric)
 

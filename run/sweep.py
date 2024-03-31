@@ -12,7 +12,10 @@ import yaml
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config-file", type=str, required=False, default="run/configs/f1-qualifying.yaml"
+        "--config-file",
+        type=str,
+        required=False,
+        default="run/configs/f1-qualifying.yaml",
     )
     parser.add_argument(
         "--grid-file", type=str, required=False, default="run/experiments/edge.yaml"
@@ -30,7 +33,7 @@ def main() -> None:
         if type(grid_dict[key]) is dict:
             for key2 in grid_dict[key]:
                 assert type(grid_dict[key][key2]) is list
-                hyperparameters['.'.join([key, key2])] = grid_dict[key][key2]
+                hyperparameters[".".join([key, key2])] = grid_dict[key][key2]
         elif type(grid_dict[key]) is list:
             hyperparameters[key] = grid_dict[key]
         else:

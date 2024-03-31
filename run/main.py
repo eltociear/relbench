@@ -8,13 +8,16 @@ sys.path.append("./")
 
 from relbench.data.task_base import TaskType
 from relgym.config import cfg, dump_cfg, load_cfg, set_out_dir, set_run_dir
-from relgym.loader import create_loader, create_dataset_and_task, transform_dataset_to_graph
+from relgym.loader import (
+    create_dataset_and_task,
+    create_loader,
+    transform_dataset_to_graph,
+)
 from relgym.logger import setup_printing
 from relgym.loss import create_loss_fn
 from relgym.models.model_builder import create_model
 from relgym.optimizer import create_optimizer, create_scheduler
 from relgym.train import train
-
 from relgym.utils.comp_budget import params_count
 from relgym.utils.device import auto_select_device
 
@@ -82,9 +85,9 @@ if __name__ == "__main__":
             col_stats_dict=col_stats_dict,
             task=task,
             to_device=cfg.device,
-            shallow_list=[
-                task.dst_entity_table
-            ] if cfg.model.use_shallow and task.task_type == TaskType.LINK_PREDICTION else [],
+            shallow_list=[task.dst_entity_table]
+            if cfg.model.use_shallow and task.task_type == TaskType.LINK_PREDICTION
+            else [],
         )
         optimizer = create_optimizer(model.parameters())
         scheduler = create_scheduler(optimizer)
@@ -106,4 +109,3 @@ if __name__ == "__main__":
         )
         logging.info(f"Complete trial {i}")
         cfg.seed = cfg.seed + 1
-

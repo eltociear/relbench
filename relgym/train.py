@@ -3,9 +3,9 @@ import math
 from typing import List
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 from tqdm import tqdm
-import torch.nn.functional as F
 
 from relbench.data.task_base import TaskType
 from relgym.config import cfg
@@ -43,9 +43,7 @@ def train_epoch_node(
 
 
 @torch.no_grad()
-def eval_epoch_node(
-    loader_dict, model, task, loss_fn, loss_utils, split="val"
-):
+def eval_epoch_node(loader_dict, model, task, loss_fn, loss_utils, split="val"):
     model.eval()
 
     entity_table = task.entity_table
@@ -125,9 +123,7 @@ def train_epoch_link(
 
 
 @torch.no_grad()
-def eval_epoch_link(
-    loader_dict, model, task, loss_fn, loss_utils, split="val"
-):
+def eval_epoch_link(loader_dict, model, task, loss_fn, loss_utils, split="val"):
     model.eval()
     src_loader, dst_loader = loader_dict[split]
 
@@ -157,9 +153,7 @@ def eval_epoch_link(
     return metrics
 
 
-def train(
-    loader_dict, model, optimizer, scheduler, task, loss_fn, loss_utils
-):
+def train(loader_dict, model, optimizer, scheduler, task, loss_fn, loss_utils):
     r"""
     The core training pipeline
 
@@ -218,13 +212,9 @@ def train(
     # Test, load the best model
     load_ckpt(model, best=True)
     logging.info("Model loaded for evaluation")
-    metrics = eval_epoch_fn(
-        loader_dict, model, task, loss_fn, loss_utils, split="val"
-    )
+    metrics = eval_epoch_fn(loader_dict, model, task, loss_fn, loss_utils, split="val")
     logging.info(f"Val metrics: {metrics}")
-    metrics = eval_epoch_fn(
-        loader_dict, model, task, loss_fn, loss_utils, split="test"
-    )
+    metrics = eval_epoch_fn(loader_dict, model, task, loss_fn, loss_utils, split="test")
     logging.info(f"Test metrics: {metrics}")
 
     logging.info("Task done, results saved in {}".format(cfg.out_dir))

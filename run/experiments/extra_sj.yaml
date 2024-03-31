@@ -1,0 +1,9 @@
+optim:
+  base_lr: [0.01, 0.001]
+model:
+  channels: [128, 256]
+  feature_dropout: [0.0, 0.2, 0.4]
+selfjoin:
+  num_filtered: [20, 100]
+  sim_score_type: ['L2', 'attention']
+  node_type_considered: [['customer', 'review'], ['drivers', 'qualifying', 'standings']]

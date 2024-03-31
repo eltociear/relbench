@@ -84,7 +84,6 @@ class HeteroGNN(torch.nn.Module):
         num_sampled_nodes_dict: Optional[Dict[NodeType, List[int]]] = None,
         num_sampled_edges_dict: Optional[Dict[EdgeType, List[int]]] = None,
     ) -> Dict[NodeType, Tensor]:
-
         # Apply dropout to the input features
         x_dict = {
             key: nn.functional.dropout(
@@ -96,7 +95,7 @@ class HeteroGNN(torch.nn.Module):
         for i, (conv, norm_dict) in enumerate(zip(self.convs, self.norms)):
             # TODO: Re-introduce this.
             # Trim graph and features to only hold required data per layer:
-            #if num_sampled_nodes_dict is not None:
+            # if num_sampled_nodes_dict is not None:
             #    assert num_sampled_edges_dict is not None
             #    x_dict, edge_index_dict, _ = trim_to_layer(
             #        layer=i,

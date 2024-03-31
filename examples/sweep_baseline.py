@@ -28,10 +28,11 @@ def main() -> None:
                 "MODEL": ["link_baseline_random", "link_baseline_most_frequent"]}
 
     """
-    grid2 = {"DATASET": ["rel-math-stackex"],
-                "TASK": ["rel-stackex-badges", "rel-stackex-votes"],
-                "MODEL": ["lgbm", "baseline"]}
-
+    grid2 = {
+        "DATASET": ["rel-math-stackex"],
+        "TASK": ["rel-stackex-badges", "rel-stackex-votes"],
+        "MODEL": ["lgbm", "baseline"],
+    }
 
     grids = [grid2]
 
@@ -54,7 +55,7 @@ def main() -> None:
             return "python examples/lightgbm_baseline.py"
         elif MODEL == "baseline":
             return "python examples/baseline.py"
-        elif MODEL == "link_baseline_random": 
+        elif MODEL == "link_baseline_random":
             return "python examples/link_baseline.py --method random"
         elif MODEL == "link_baseline_most_frequent":
             return "python examples/link_baseline.py --method most_frequent"
