@@ -10,6 +10,7 @@ from inferred_stypes import dataset2inferred_stypes
 from model import Model
 from text_embedder import GloveTextEmbedding
 from torch.nn import BCEWithLogitsLoss, L1Loss
+from torch.utils.tensorboard import SummaryWriter
 from torch_frame.config.text_embedder import TextEmbedderConfig
 from torch_geometric.data import HeteroData
 from torch_geometric.loader import NeighborLoader
@@ -22,8 +23,8 @@ from relbench.datasets import get_dataset
 from relbench.external.graph import get_node_train_table_input, make_pkey_fkey_graph
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--dataset", type=str, default="rel-stackex")
-parser.add_argument("--task", type=str, default="rel-stackex-engage")
+parser.add_argument("--dataset", type=str, default="rel-hm")
+parser.add_argument("--task", type=str, default="rel-hm-churn")
 parser.add_argument("--lr", type=float, default=0.01)
 parser.add_argument("--epochs", type=int, default=10)
 parser.add_argument("--batch_size", type=int, default=512)
@@ -33,6 +34,9 @@ parser.add_argument("--num_layers", type=int, default=2)
 parser.add_argument("--num_neighbors", type=int, default=128)
 parser.add_argument("--temporal_strategy", type=str, default="uniform")
 parser.add_argument("--num_workers", type=int, default=1)
+parser.add_argument("--max_steps_per_epoch", type=int, default=2000)
+parser.add_argument("--load_ckpt", action="store_true")
+parser.add_argument("--log_dir", type=str, default="results")
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -95,15 +99,29 @@ elif task.task_type == TaskType.REGRESSION:
         task.train_table.df[task.target_col].to_numpy(), [2, 98]
     )
 
+tmp_channels = args.channels if args.load_ckpt else out_channels
 model = Model(
     data=data,
     col_stats_dict=col_stats_dict,
     num_layers=args.num_layers,
     channels=args.channels,
-    out_channels=out_channels,
+    out_channels=tmp_channels,
     aggr=args.aggr,
-    norm="batch_norm",
+    norm="layer_norm",
 ).to(device)
+
+if args.load_ckpt:
+    print("Loading check point")
+    model.load_state_dict(torch.load("ckpt/hm.pt"))
+    from torch_geometric.nn import MLP
+
+    model.head = MLP(
+        args.channels,
+        out_channels=out_channels,
+        norm="layer_norm",
+        num_layers=1,
+    )
+    model.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 
 
@@ -111,7 +129,9 @@ def train() -> float:
     model.train()
 
     loss_accum = count_accum = 0
-    for batch in tqdm(loader_dict["train"]):
+    steps = 0
+    total_steps = min(len(loader_dict["train"]), args.max_steps_per_epoch)
+    for batch in tqdm(loader_dict["train"], total=total_steps):
         batch = batch.to(device)
 
         optimizer.zero_grad()
@@ -126,6 +146,10 @@ def train() -> float:
 
         loss_accum += loss.detach().item() * pred.size(0)
         count_accum += pred.size(0)
+
+        steps += 1
+        if steps > args.max_steps_per_epoch:
+            break
 
     return loss_accum / count_accum
 
@@ -154,6 +178,8 @@ def test(loader: NeighborLoader) -> np.ndarray:
     return torch.cat(pred_list, dim=0).numpy()
 
 
+writer = SummaryWriter(log_dir=args.log_dir)
+
 state_dict = None
 best_val_metric = 0 if higher_is_better else math.inf
 for epoch in range(1, args.epochs + 1):
@@ -168,6 +194,10 @@ for epoch in range(1, args.epochs + 1):
         best_val_metric = val_metrics[tune_metric]
         state_dict = copy.deepcopy(model.state_dict())
 
+    writer.add_scalar("train/loss", train_loss, epoch)
+    for name, metric in val_metrics.items():
+        writer.add_scalar(f"val/{name}", metric, epoch)
+
 model.load_state_dict(state_dict)
 val_pred = test(loader_dict["val"])
 val_metrics = task.evaluate(val_pred, task.val_table)
@@ -176,3 +206,9 @@ print(f"Best Val metrics: {val_metrics}")
 test_pred = test(loader_dict["test"])
 test_metrics = task.evaluate(test_pred)
 print(f"Best test metrics: {test_metrics}")
+
+for name, metric in test_metrics.items():
+    writer.add_scalar(f"test/{name}", metric, 0)
+
+writer.flush()
+writer.close()

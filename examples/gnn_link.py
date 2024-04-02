@@ -218,6 +218,9 @@ for epoch in range(1, args.epochs + 1):
             writer.add_scalar(f"val/{name}", metric, epoch)
 
 model.load_state_dict(state_dict)
+os.makedirs("ckpt/", exist_ok=True)
+torch.save(state_dict, "ckpt/hm.pt")
+
 val_pred = test(*eval_loaders_dict["val"])
 val_metrics = task.evaluate(val_pred, task.val_table)
 print(f"Best Val metrics: {val_metrics}")
