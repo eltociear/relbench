@@ -13,6 +13,7 @@ model:
   norm: "layer_norm"
   feature_dropout: 0.0
   use_shallow: true
+  use_time_emb: true
 dataset:
   name: "rel-hm"
   cache_dir: "/dfs/scratch0/jiaqihan/projects/relbench/cache"

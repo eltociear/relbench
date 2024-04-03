@@ -1,6 +1,7 @@
 import argparse
 import itertools
 import os
+import shutil
 import subprocess
 import time
 from multiprocessing import Process, Queue
@@ -55,6 +56,8 @@ def main() -> None:
 
     print(f"config files output to {output_folder}")
     os.makedirs(output_folder, exist_ok=False)
+    # copy the grid yaml into the folder and rename it as grid.yaml
+    shutil.copyfile(args.grid_file, os.path.join(output_folder, 'grid.yaml'))
 
     # Generate all combinations of hyperparameter values
     combinations = list(itertools.product(*hyperparameters.values()))
@@ -75,7 +78,6 @@ def main() -> None:
                 f"Started: Exp {exp_id} Config {new_config_file.split('/')[-1]}, GPU {gpu}."
             )
             command = f"CUDA_VISIBLE_DEVICES={gpu} python run/main.py --cfg {new_config_file} --repeat {repeats} > /dev/null 2>&1"
-            # command = f'CUDA_VISIBLE_DEVICES={gpu} python run/main.py --cfg {new_config_file} --repeat {repeats}'
             # print(command)
             subprocess.run(command, shell=True)
             print(

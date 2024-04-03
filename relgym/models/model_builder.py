@@ -77,9 +77,11 @@ def create_model(
         ) -> Tensor:
             x_dict = self.encoder(batch.tf_dict)
 
-            rel_time_dict = self.temporal_encoder(
-                batch[entity_table].seed_time, batch.time_dict, batch.batch_dict
-            )
+            if cfg.model.use_time_emb:
+                rel_time_dict = self.temporal_encoder(batch[entity_table].seed_time, batch.time_dict, batch.batch_dict)
+            else:
+                rel_time_dict = {}
+
             for node_type, rel_time in rel_time_dict.items():
                 x_dict[node_type] = x_dict[node_type] + rel_time
 

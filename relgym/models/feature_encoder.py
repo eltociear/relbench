@@ -9,6 +9,21 @@ from torch_geometric.nn import PositionalEncoding
 from torch_geometric.typing import NodeType
 
 
+class DummyModule(ResNet):
+    def forward(self, tf) -> Tensor:
+        r"""Transforming :class:`TensorFrame` object into output prediction.
+
+        Args:
+            tf (TensorFrame): Input :class:`TensorFrame` object.
+
+        Returns:
+            torch.Tensor: Output of shape [batch_size, out_channels].
+        """
+        x, _ = self.encoder(tf)
+        x = torch.mean(x, dim=1)
+        return x
+
+
 class HeteroEncoder(torch.nn.Module):
     r"""HeteroEncoder based on PyTorch Frame.
 
@@ -81,6 +96,14 @@ class HeteroEncoder(torch.nn.Module):
                     attn_dropout=0.9,
                     ffn_dropout=0.9,
                     encoder_pad_size=32,
+                )
+            elif torch_frame_model_cls is None:
+                torch_frame_model = DummyModule(
+                    **torch_frame_model_kwargs,
+                    out_channels=channels,
+                    col_stats=node_to_col_stats[node_type],
+                    col_names_dict=node_to_col_names_dict[node_type],
+                    stype_encoder_dict=stype_encoder_dict,
                 )
             else:
                 raise ValueError(

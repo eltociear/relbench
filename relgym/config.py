@@ -159,6 +159,9 @@ def set_cfg(cfg):
     # Use shallow embedding for destination nodes in link prediction
     cfg.model.use_shallow = True
 
+    # Use time embedding
+    cfg.model.use_time_emb = True
+
     # ----------------------------------------------------------------------- #
     # Optimizer options
     # ----------------------------------------------------------------------- #
