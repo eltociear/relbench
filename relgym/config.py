@@ -96,6 +96,9 @@ def set_cfg(cfg):
     # The maximum step per epoch in link prediction
     cfg.train.max_steps_per_epoch = 2000
 
+    # For link prediction, boost predictions with globally popular items
+    cfg.train.link_globally_popular = False
+
     # ----------------------------------------------------------------------- #
     # Validation options
     # ----------------------------------------------------------------------- #
