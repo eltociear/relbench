@@ -190,6 +190,79 @@ def get_node_train_table_input(
     )
 
 
+class AttachTemporalTargetTransform:
+    r"""Adds the target label to the heterogeneous mini-batch.
+    The batch consists of disjoins subgraphs loaded via temporal sampling.
+    The same input node can occur twice with different timestamps, and thus
+    different subgraphs and labels. Hence labels cannot be stored in the graph
+    object directly, and must be attached to the batch after the batch is
+    created."""
+
+    def __init__(self, entity: str, target_dict: Dict[str, Tensor]):
+        self.entity = entity
+        self.target_dict = target_dict
+
+    def __call__(self, batch: HeteroData, target_key: str) -> HeteroData:
+        batch[self.entity].y = self.target_dict[target_key][batch[self.entity].input_id]
+        return batch
+
+
+class NodeTemporalTrainTableInput(NamedTuple):
+    nodes: Tuple[NodeType, Tensor]
+    time: Optional[Tensor]
+    target: Optional[Tensor]
+    transform: Optional[AttachTemporalTargetTransform]
+    previous_times: Optional[Tensor]
+
+
+def get_temporal_node_train_table_input(
+    table: Table,
+    task: NodeTask,
+    num_ar: int,   
+    multilabel: bool = False, 
+) -> NodeTrainTableInput:
+    nodes = torch.from_numpy(table.df[task.entity_col].astype(int).values)
+
+    time: Optional[Tensor] = None
+    if table.time_col is not None:
+        time = torch.from_numpy(to_unix_time(table.df[table.time_col]))
+
+    target: Optional[Tensor] = None
+    transform: Optional[AttachTemporalTargetTransform] = None
+    if task.target_col in table.df:
+        target_type = float
+        if task.task_type == "multiclass_classification":
+            target_type = int
+        if task.task_type == TaskType.MULTILABEL_CLASSIFICATION:
+            target = torch.from_numpy(np.stack(table.df[task.target_col].values))
+        else:
+            target = torch.from_numpy(
+                table.df[task.target_col].values.astype(target_type)
+            )
+
+
+        target_dict = {'root': target}
+
+        previous_times = []
+        for i in range(1, num_ar + 1):
+            prev = torch.from_numpy(to_unix_time(table.df[table.time_col] - i*task.timedelta))
+            previous_times.append(prev)
+            target_dict[f'AR_{i}'] =  torch.from_numpy(
+                table.df[f'AR_{i}'].values.astype(target_type)
+            )
+
+        previous_times = torch.stack(previous_times, dim=1)
+        
+        transform = AttachTemporalTargetTransform(task.entity_table, target_dict)
+
+    return NodeTemporalTrainTableInput(
+        nodes=(task.entity_table, nodes),
+        time=time,
+        target=target,
+        transform=transform,
+        previous_times=previous_times,
+    )
+
 class LinkTrainTableInput(NamedTuple):
     r"""Trainining table input for link prediction.
 
