@@ -33,7 +33,7 @@ def main(args):
                 params["Best test metrics"] = best_metrics
                 # Convert string to dictionary
                 best_metrics = ast.literal_eval(best_metrics)
-                
+
                 params["mae"] = best_metrics.get("mae", None)
                 params["roc_auc"] = best_metrics.get("roc_auc", None)
                 data.append(params)

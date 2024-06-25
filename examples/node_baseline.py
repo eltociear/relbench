@@ -29,7 +29,7 @@ val_table = task.val_table
 test_table = task.test_table
 
 
-def evaluate(train_table: Table, 
+def evaluate(train_table: Table,
              pred_table: Table,
             name: str,
              val_table: Table = None,

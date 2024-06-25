@@ -145,7 +145,7 @@ class TemporalNodeLoader(
 
     def collate_fn(self, index: Union[Tensor, List[int]]) -> Any:
         r"""Samples a subgraph from a batch of input nodes
-        AND 
+        AND
         subgraph from a batch of input nodes at previous times."""
         input_data: NodeSamplerInput = self.input_data[index]
         out = {"root": self.node_sampler.sample_from_nodes(input_data)}

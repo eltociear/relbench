@@ -24,7 +24,7 @@ class TemporalModel(torch.nn.Module):
         out_channels: int,
         aggr: str,
         norm: str,
-        task_type: str, 
+        task_type: str,
         num_ar: int,
         # List of node types to add shallow embeddings to input
         shallow_list: List[NodeType] = [],
@@ -88,11 +88,11 @@ class TemporalModel(torch.nn.Module):
 
         self.num_ar = num_ar
         self.ar_key_to_idx = {}
-    
+
         # Map the AR keys
         for i in range(num_ar, 0, -1):
             self.ar_key_to_idx[f'AR_{i}'] = num_ar - i
-        
+
         # Map the root key to the last index
         self.ar_key_to_idx['root'] = num_ar
 
@@ -105,7 +105,7 @@ class TemporalModel(torch.nn.Module):
     def reset_parameters(self):
         self.encoder.reset_parameters()
         self.temporal_encoder.reset_parameters()
-        
+
         self.gnn.reset_parameters()
         self.head.reset_parameters()
         for embedding in self.embedding_dict.values():
@@ -135,7 +135,7 @@ class TemporalModel(torch.nn.Module):
                 x_dict[ar_key] = torch.cat([torch.zeros_like(x_dict[ar_key]), self.label_embedder(y_dict[self.idx_to_ar_key[i-1]])], dim=-1)
             else:
                 #x_dict[ar_key] = x_dict[ar_key]
-                x_dict[ar_key] = torch.cat([x_dict[ar_key], torch.zeros_like(x_dict[ar_key])], dim=-1) 
+                x_dict[ar_key] = torch.cat([x_dict[ar_key], torch.zeros_like(x_dict[ar_key])], dim=-1)
 
         return x_dict
 
@@ -179,7 +179,7 @@ class TemporalModel(torch.nn.Module):
         )
 
         return x_dict
-    
+
 
     def forward(
         self,
@@ -229,12 +229,12 @@ class LabelEmbedder(torch.nn.Module):
     """
     def __init__(self, task_type, channels):
         super(LabelEmbedder, self).__init__()
-        
+
         if task_type == TaskType.BINARY_CLASSIFICATION:
             self.label_embedder = torch.nn.Embedding(2, channels)
         elif task_type == TaskType.REGRESSION:
             self.label_embedder = torch.nn.Linear(1, channels)
-        
+
         self.task_type = task_type
         self.nan_embedder = torch.nn.Parameter(torch.randn(channels))  # Learned embedding for NaN values
 
@@ -242,17 +242,17 @@ class LabelEmbedder(torch.nn.Module):
     def forward(self, y):
         is_nan = torch.isnan(y)
         not_nan = ~is_nan
-        
+
         embedded_labels = torch.zeros((y.size(0), self.channels), device=y.device)
-        
+
         if self.task_type == TaskType.REGRESSION:
             y = y.float().unsqueeze(1)
         else:
             y = y.long()
         if not_nan.any():
             embedded_labels[not_nan] = self.label_embedder(y[not_nan])
-        
+
         if is_nan.any():
            embedded_labels[is_nan] = self.nan_embedder
-        
+
         return embedded_labels

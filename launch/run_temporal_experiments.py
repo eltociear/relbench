@@ -38,7 +38,7 @@ configs = [
 def run_script(config, log_dir, script):
     # Ensure log directory exists
     os.makedirs(log_dir, exist_ok=True)
-    
+
     # Construct the command
     command = ["python", script]
     for arg, value in config.items():
@@ -47,14 +47,14 @@ def run_script(config, log_dir, script):
             pass
         else:
             command.append(str(value))
-    
+
     # Create a log file path with all config values
     log_file = os.path.join(log_dir, "_".join([f"{k}_{v}" for k, v in config.items()]) + ".log")
 
     # Run the script and save output to log file
     with open(log_file, "w") as log:
         subprocess.run(command, stdout=log, stderr=log, text=True)
-    
+
     print(f"Run completed: {config} (log saved to {log_file})")
 
 # Directory to save logs
