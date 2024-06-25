@@ -9,6 +9,7 @@ from torch_geometric.data import HeteroData
 from torch_geometric.nn import MLP
 from torch_geometric.typing import NodeType
 
+
 from relbench.external.nn import HeteroEncoder, HeteroGraphSAGE, HeteroTemporalEncoder
 from relbench.data.task_base import TaskType
 
@@ -46,6 +47,7 @@ class TemporalModel(torch.nn.Module):
             ],
             channels=channels,
         )
+
         self.gnn = HeteroGraphSAGE(
             node_types=data.node_types,
             edge_types=data.edge_types,
@@ -53,12 +55,21 @@ class TemporalModel(torch.nn.Module):
             aggr=aggr,
             num_layers=num_layers,
         )
+
         self.head = MLP(
             channels * 2 * (num_ar + 1),
             hidden_channels=channels,
             out_channels=out_channels,
             norm=norm,
             num_layers=3,
+        )
+
+        self.past_mlp = MLP(
+            channels * 2,
+            hidden_channels=2*channels,
+            out_channels=2*channels,
+            norm=norm,
+            num_layers=2,
         )
         self.embedding_dict = ModuleDict(
             {
@@ -88,9 +99,13 @@ class TemporalModel(torch.nn.Module):
         # and the reverse
         self.idx_to_ar_key = {v: k for k, v in self.ar_key_to_idx.items()}
 
+        self.y_nan_emb = torch.nn.Embedding(1, channels)
+
+
     def reset_parameters(self):
         self.encoder.reset_parameters()
         self.temporal_encoder.reset_parameters()
+        
         self.gnn.reset_parameters()
         self.head.reset_parameters()
         for embedding in self.embedding_dict.values():
@@ -101,36 +116,47 @@ class TemporalModel(torch.nn.Module):
 
 
     def add_label_and_time_embeddings(self, outs, entity_table, batch_dict):
-        x_time_dict = {k: out[entity_table] for k, out in outs.items()}
+        x_dict = {k: out[entity_table] for k, out in outs.items()}
 
-        y_time_dict = {k: batch[entity_table].y for k, batch in batch_dict.items() if k != "root"}
+        y_dict = {k: batch[entity_table].y for k, batch in batch_dict.items() if k != "root"}
 
         for i, ar_key in  self.idx_to_ar_key.items():
             if i > 0:
+                # w.p. 0.5 zero out the x during train
+                #if torch.rand(1) < 0.25: # and self.training:
+                #    x_dict[ar_key] = torch.zeros_like(x_dict[ar_key])
                 # add y label from previous time step
-                x_time_dict[ar_key] = torch.cat([torch.zeros_like(x_time_dict[ar_key]), self.label_embedder(y_time_dict[self.idx_to_ar_key[i-1]])], dim=-1)
+
+                # mask to zero out the x if y is nan
+                #mask = torch.isnan(y_dict[self.idx_to_ar_key[i-1]]).unsqueeze(-1)
+                #x_dict[ar_key] = torch.where(mask, self.y_nan_emb.weight.repeat(mask.size(0), 1), x_dict[ar_key])
+
+
+                x_dict[ar_key] = torch.cat([torch.zeros_like(x_dict[ar_key]), self.label_embedder(y_dict[self.idx_to_ar_key[i-1]])], dim=-1)
             else:
-                x_time_dict[ar_key] = torch.cat([x_time_dict[ar_key], torch.zeros_like(x_time_dict[ar_key])], dim=-1) 
+                #x_dict[ar_key] = x_dict[ar_key]
+                x_dict[ar_key] = torch.cat([x_dict[ar_key], torch.zeros_like(x_dict[ar_key])], dim=-1) 
+
+        return x_dict
 
 
-
-        return x_time_dict
-
-
-    def fuse_past(self, x_dict_dict, seed_times):
+    def fuse_past(self, x_dict, seed_times):
         # make seq_len x n x dim tensor
-        xs=[]
         for i, ar_key in  self.idx_to_ar_key.items():
-            xs.append(x_dict_dict[ar_key][: seed_times[ar_key].size(0)].unsqueeze(0))
+            x_dict[ar_key] = x_dict[ar_key][: seed_times[ar_key].size(0)]
 
-        x = torch.cat(xs, dim=0) # seq_len x n x dim
+        #x = torch.cat(xs, dim=0) # seq_len x n x dim
 
-        for i, ar_key in  self.idx_to_ar_key.items():
-            x_dict_dict[ar_key] = x[i]
+        #for i, ar_key in  self.idx_to_ar_key.items():
+        #    x_dict[ar_key] = x[i]
 
-        return x_dict_dict
+        for ar_key in x_dict.keys():
+            if ar_key != 'root':
+                x_dict[ar_key] = self.past_mlp(x_dict[ar_key])
 
-    def forward_batch(self, inputs):
+        return x_dict
+
+    def forward_batch(self, inputs, key):
         seed_time, tf_dict, time_dict, batch_dict, edge_index_dict, num_sampled_nodes_dict, num_sampled_edges_dict, node_type_dict = inputs
 
         x_dict = self.encoder(tf_dict)
@@ -187,7 +213,7 @@ class TemporalModel(torch.nn.Module):
         }
 
         # Run forward pass in parallel on the single GPU
-        outs = {k: self.forward_batch(batch) for k, batch in inputs.items()}
+        outs = {k: self.forward_batch(batch, k) for k, batch in inputs.items()}
         # Combine the outputs into a dictionary
 
         x_time_dict = self.add_label_and_time_embeddings(outs, entity_table, batch_dict)
@@ -195,39 +221,6 @@ class TemporalModel(torch.nn.Module):
 
         out = torch.cat([out[k] for k in out.keys()], dim=-1)
         return {"root": self.head(out)}
-
-    def forward_dst_readout(
-        self,
-        batch: HeteroData,
-        entity_table: NodeType,
-        dst_table: NodeType,
-    ) -> Tensor:
-        if self.id_awareness_emb is None:
-            raise RuntimeError(
-                "id_awareness must be set True to use forward_dst_readout"
-            )
-        seed_time = batch[entity_table].seed_time
-        x_dict = self.encoder(batch.tf_dict)
-        # Add ID-awareness to the root node
-        x_dict[entity_table][: seed_time.size(0)] += self.id_awareness_emb.weight
-
-        rel_time_dict = self.temporal_encoder(
-            seed_time, batch.time_dict, batch.batch_dict
-        )
-
-        for node_type, rel_time in rel_time_dict.items():
-            x_dict[node_type] = x_dict[node_type] + rel_time
-
-        for node_type, embedding in self.embedding_dict.items():
-            x_dict[node_type] = x_dict[node_type] + embedding(batch[node_type].n_id)
-
-        x_dict = self.gnn(
-            x_dict,
-            batch.edge_index_dict,
-        )
-
-        return self.head(x_dict[dst_table])
-
 
 
 class LabelEmbedder(torch.nn.Module):

@@ -151,11 +151,13 @@ class TemporalNodeLoader(
         out = {"root": self.node_sampler.sample_from_nodes(input_data)}
 
         for i, past_times in enumerate(self.previous_times[index].T):
+            # replace the time with the past time to get the past subgraph
             input_data.time=past_times.contiguous()
             out[f"AR_{i+1}"] = self.node_sampler.sample_from_nodes(input_data)
 
         if self.filter_per_worker:  # Execute `filter_fn` in the worker process
             out = {target_key: self.filter_fn(value, target_key) for target_key, value in out.items()}
+
 
         return out
 

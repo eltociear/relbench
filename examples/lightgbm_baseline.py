@@ -24,18 +24,24 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", type=str, default="rel-stack")
 parser.add_argument("--task", type=str, default="user-engage")
 # Use auto-regressive label as hand-crafted feature as input to LightGBM
-parser.add_argument("--use_ar_label", action="store_true")
+parser.add_argument("--use-ar-label", action="store_true")
+parser.add_argument("--num-ar", type=int, default=3)
 parser.add_argument(
-    "--sample_size",
+    "--sample-size",
     type=int,
     default=50_000,
     help="Subsample the specified number of training data to train lightgbm model.",
 )
 parser.add_argument("--seed", type=int, default=42)
 parser.add_argument(
-    "--cache_dir",
+    "--cache-dir",
     type=str,
     default=os.path.expanduser("~/.cache/relbench/materialized"),
+)
+parser.add_argument(
+    "--process",
+    action="store_true",
+    help="Whether to process the dataset before loading.",
 )
 args = parser.parse_args()
 
@@ -44,27 +50,28 @@ if torch.cuda.is_available():
     torch.set_num_threads(1)
 seed_everything(args.seed)
 
-dataset: RelBenchDataset = get_dataset(name=args.dataset, process=False)
+dataset: RelBenchDataset = get_dataset(name=args.dataset, process=args.process)
 task: RelBenchNodeTask = dataset.get_task(args.task, process=True)
 
 train_table = task.train_table
 val_table = task.val_table
-test_table = task.test_table
+task.test_table
+test_table = task._full_test_table
 
 ar_label_cols = []
 
 if args.use_ar_label:
     ### Adding AR labels into train/val/test_table
     whole_df = pd.concat([train_table.df, val_table.df, test_table.df], axis=0)
-    num_ar_labels = max(train_table.df[train_table.time_col].nunique() - 2, 1)
+    num_ar_labels = args.num_ar
 
     sorted_unique_times = np.sort(whole_df[train_table.time_col].unique())
     timedelta = sorted_unique_times[1:] - sorted_unique_times[:-1]
-    if (timedelta / timedelta[0] - 1).max() > 0.1:
-        raise RuntimeError(
-            "Timestamps are not equally spaced, making it inappropriate for "
-            "AR labels to be used."
-        )
+    #if (timedelta / timedelta[0] - 1).max() > 0.1:
+    #    raise RuntimeError(
+    #        "Timestamps are not equally spaced, making it inappropriate for "
+    #        "AR labels to be used."
+    #    )
     TIME_IDX_COL = "time_idx"
     time_df = pd.DataFrame(
         {
@@ -95,7 +102,6 @@ if args.use_ar_label:
 dfs: Dict[str, pd.DataFrame] = {}
 entity_table = dataset.db.table_dict[task.entity_table]
 entity_df = entity_table.df
-
 col_to_stype = dataset2inferred_stypes[args.dataset][task.entity_table]
 remove_pkey_fkey(col_to_stype, entity_table)
 
@@ -142,11 +148,12 @@ train_dataset = Dataset(
         batch_size=256,
     ),
 )
+
 train_dataset = train_dataset.materialize(
     path=os.path.join(args.cache_dir, f"{args.dataset}_{args.task}.pt")
 )
 
-tf_train = train_dataset.tensor_frame
+tf_train = train_dataset.convert_to_tensor_frame(dfs["train"])
 tf_val = train_dataset.convert_to_tensor_frame(dfs["val"])
 tf_test = train_dataset.convert_to_tensor_frame(dfs["test"])
 

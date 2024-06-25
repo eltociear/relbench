@@ -27,19 +27,21 @@ parser.add_argument("--dataset", type=str, default="rel-stackex")
 parser.add_argument("--task", type=str, default="rel-stackex-engage")
 parser.add_argument("--lr", type=float, default=0.01)
 parser.add_argument("--epochs", type=int, default=10)
-parser.add_argument("--batch_size", type=int, default=512)
+parser.add_argument("--batch-size", type=int, default=512)
 parser.add_argument("--channels", type=int, default=128)
 parser.add_argument("--aggr", type=str, default="sum")
-parser.add_argument("--num_layers", type=int, default=2)
-parser.add_argument("--num_ar", type=int, default=3)
-parser.add_argument("--num_neighbors", type=int, default=128)
-parser.add_argument("--temporal_strategy", type=str, default="uniform")
-parser.add_argument("--num_workers", type=int, default=1)
+parser.add_argument("--num-layers", type=int, default=2)
+parser.add_argument("--num-ar", type=int, default=3)
+parser.add_argument("--num-neighbors", type=int, default=128)
+parser.add_argument("--temporal-strategy", type=str, default="uniform")
+parser.add_argument("--num-workers", type=int, default=1)
 parser.add_argument("--process", action="store_true")
+parser.add_argument("--max-steps-per-epoch", type=int, default=2000)
+parser.add_argument("--seed", type=int, default=42)
 args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-seed_everything(42)
+seed_everything(args.seed)
 
 root_dir = "./data"
 
@@ -158,8 +160,10 @@ optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 def train() -> float:
     model.train()
 
+    steps = 0
     loss_accum = count_accum = 0
-    for batch in tqdm(loader_dict["train"]):
+    total_steps = min(len(loader_dict["train"]), args.max_steps_per_epoch)
+    for batch in tqdm(loader_dict["train"], total=total_steps):
         batch = {k: v.to(device) for k, v in batch.items()}
         optimizer.zero_grad()
         pred = model(
@@ -167,19 +171,6 @@ def train() -> float:
             task.entity_table,
         )
 
-
-        """
-        loss = 0.
-        # stack pred and y
-        for key in pred.keys():
-            pred[key] = pred[key].view(-1) if pred[key].size(1) == 1 else pred[key]
-            target = batch[key][entity_table].y
-
-            # get mask of nans in target
-            mask = torch.isnan(target)
-
-            loss += loss_fn(pred[key][~mask], target[~mask])
-        """
         pred = pred['root'].view(-1) if pred['root'].size(1) == 1 else pred['root']
         loss = loss_fn(pred, batch['root'][entity_table].y)
 
@@ -190,6 +181,10 @@ def train() -> float:
 
         loss_accum += loss.detach().item() * pred.size(0)
         count_accum += pred.size(0)
+
+        steps += 1
+        if steps > args.max_steps_per_epoch:
+            break
 
     return loss_accum / count_accum
 
